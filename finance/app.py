@@ -63,11 +63,11 @@ def login():
     if request.method == "POST":
         # Ensure username was submitted
         if not request.form.get("username"):
-            return apology("must provide username", 403)
+            return apology("宝宝，登录需要用户名哦", 403)
 
         # Ensure password was submitted
         elif not request.form.get("password"):
-            return apology("must provide password", 403)
+            return apology("小笨蛋，忘记输密码啦", 403)
 
         # Query database for username
         rows = db.execute(
@@ -78,10 +78,12 @@ def login():
         if len(rows) != 1 or not check_password_hash(
             rows[0]["hash"], request.form.get("password")
         ):
-            return apology("invalid username and/or password", 403)
+            return apology("用户名或者密码不对哦，宝宝再试一次吧", 403)
 
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
+
+        flash(f"欢迎回来宝宝，{rows[0]["username"]}!")
 
         # Redirect user to home page
         return redirect("/")
