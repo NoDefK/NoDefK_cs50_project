@@ -112,7 +112,30 @@ def quote():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     """Register user"""
-    return apology("TODO")
+    #如果用户提交了表单
+    if request.method =="POST":
+        #保证用户名是被提交的
+        if not request.form.get("username"):
+            return apology("宝宝，我们需要你提供用户名哦",400)
+        #保证密码是被提交的
+        elif not request.form.get("password"):
+            return apology("宝宝，我们需要你提供密码哦",400)
+        elif not request.form.get("password")==request.form.get("confirmation"):
+            return apology("宝宝太粗心啦，两次输入的密码不一样哦，请再尝试一次哦",400)
+        #查询数据库，确保用户名未被注册
+        rows=db.execute("SELECT * FROM users WHERE username = ?", request.form.get("username"))#这句SQL语句现学现用
+        if len(rows)>0:
+            return apology("不好意思宝宝，这个用户名已经被其他宝宝抢先一步了，请再想一个哦",400)
+        #获取hash密码
+        hash_password=generate_password_hash(request.form.get("password"))
+        new_user_id=db.execute("INSERT INTO users (username,hash) VALUES(?,?)",request.form.get("username"),hash_password)
+        #注册成功后，自动为用户登录
+        session["user_id"]=new_user_id
+        flash("注册成功啦！欢迎你新来的宝宝，宝宝真棒！")
+        #重新定向到首页
+        return redirect("/")                      
+    else:
+        return render_template("register.html")
 
 
 @app.route("/sell", methods=["GET", "POST"])
