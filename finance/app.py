@@ -42,7 +42,45 @@ def index():
 @login_required
 def buy():
     """Buy shares of stock"""
-    return apology("TODO")
+    
+    if request.method=="POST":
+        symbol=request.form.get("symbol")
+        # 增加一个检查，防止用户不输入就提交
+        if not symbol:
+            return apology("must provide symbol", 400)
+            
+        #查询股票数据
+        quote=lookup(symbol)
+        #没找到
+        if quote==None:
+            return apology("invalid symbol",400)
+        #开始买了，记录要买多少
+        try:
+            #从表中读取的是字符串要转换
+            shares=int(request.form.get("shares"))
+        #如果是不正常的数
+        except:
+          return apology("shares must be normal",400)
+        #判断shares是否>0
+        if shares<=0:
+            return apology("shares should be a positive number",400)
+        #开始记录有多少钱
+        rows=db.execute("SELECT cash FROM users WHERE id = :user_id", user_id=session["user_id"])
+        cash_remaining=rows[0]["cash"]
+        per_share_price=quote["price"]
+        total=per_share_price*shares
+        if total>cash_remaining:
+            return apology("money is not enough")
+        # 扣除用户现金
+        db.execute("UPDATE users SET cash = cash - :price WHERE id = :user_id", price=total, user_id=session["user_id"])
+
+        # 记录交易历史
+        db.execute("INSERT INTO transactions (user_id, symbol, shares, price) VALUES(:user_id, :symbol, :shares, :price)", user_id=session["user_id"], symbol=symbol, shares=shares, price=per_share_price)
+        flash("宝宝恭喜你购买成功！发大财哦！")
+        #防止重复购买和扣款
+        return redirect("/")
+    else:
+        return render_template("buy.html")
 
 
 @app.route("/history")

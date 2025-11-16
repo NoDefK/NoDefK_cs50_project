@@ -3,11 +3,10 @@
 {% block title %}
     Quote
 {% endblock %}
- <br>
-    Get a Quote
-{% endblock %}
+
 {% block main %}
-    <form action="/Quote" method="post">
+    <h2 class="mb-4">Get a Quote</h2>
+    <form action="/quote" method="post">
         <div class="mb-3">
             <input autocomplete="off" autofocus class="form-control mx-auto w-auto" name="symbol" placeholder="Symbol" type="text">
         </div>
