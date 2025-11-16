@@ -108,7 +108,18 @@ def logout():
 @login_required
 def quote():
     """Get stock quote."""
-    return apology("TODO")
+    if request.method=="POST":
+        #检查用户是否提交了空的表单
+        symbol=request.form.get("symbol")
+        if not symbol:
+            return apology("must provide symbol",400)
+        stock=lookup(symbol)
+        if stock==None:
+            return apology("invalid symbol",400)
+        #将值赋给对应的变量名,用usd格式化价格
+        return render_template("quote.html",symbol=stock["symbol"],price=usd(stock["price"]))
+    else:
+      return render_template("quote.html")
 
 
 @app.route("/register", methods=["GET", "POST"])
