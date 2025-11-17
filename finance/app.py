@@ -35,7 +35,24 @@ def after_request(response):
 @login_required
 def index():
     """Show portfolio of stocks"""
-    return apology("TODO")
+    # 查找cash
+    users = db.execute("SELECT cash FROM users WHERE id = :user_id", user_id=session["user_id"])
+    # 用户持有的每一种股票和总数量
+    stocks = db.execute( "SELECT symbol, SUM(shares) as total_shares FROM transactions WHERE user_id = :user_id GROUP BY symbol HAVING total_shares > 0", user_id=session["user_id"])
+    
+    quotes = {} # 初始化一个空的字典
+    
+    cash_remaining = users[0]["cash"]
+    grand_total = cash_remaining  # 初始化总资产为现金
+
+    for stock in stocks: # 遍历
+        quote = lookup(stock["symbol"])
+        quotes[stock["symbol"]] = quote
+        # 累加每支股票的总价值到 grand_total 中
+        grand_total += stock["total_shares"] * quote["price"]
+
+    # 注意：现在传递 grand_total 而不是旧的 total
+    return render_template("portfolio.html", quotes=quotes, stocks=stocks, grand_total=grand_total, cash_remaining=cash_remaining)
 
 
 @app.route("/buy", methods=["GET", "POST"])

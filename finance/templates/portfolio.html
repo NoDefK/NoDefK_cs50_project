@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Portfolio
+{% endblock %}
+
+{% block main %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Name</th>
+                <th>Shares</th>
+                <th>Price</th>
+                <th>TOTAL VALUE</th>
+                <th style="width: 20%;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stock in stocks %}
+                <tr>
+                    <td>{{ stock.symbol }}</td>
+                    <td>{{ quotes[stock.symbol].name }}</td> {# 我们把Name这一列加回来了 #}
+                    <td>{{ stock.total_shares }}</td>
+                    <td>{{ quotes[stock.symbol].price | usd }}</td>
+                    <td>{{ (stock.total_shares * quotes[stock.symbol].price) | usd }}</td>
+                    <td>
+                        {#借鉴来的交互式表单 #}
+                        <form action="/buy" method="post" class="d-inline">
+                            <input type="hidden" name="symbol" value="{{ stock.symbol }}">
+                            <div class="input-group input-group-sm">
+                                <input type="number" name="shares" min="1" placeholder="Qty" class="form-control" required>
+                                <button class="btn btn-primary" type="submit">Buy</button>
+                            </div>
+                        </form>
+
+                        <form action="/sell" method="post" class="d-inline">
+                            <input type="hidden" name="symbol" value="{{ stock.symbol }}">
+                            <div class="input-group input-group-sm">
+                                <input type="number" name="shares" min="1" placeholder="Qty" class="form-control" required>
+                                <button class="btn btn-danger" type="submit">Sell</button>
+                            </div>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5" class="text-end">Cash Balance</td>
+                <td>{{ cash_remaining | usd }}</td>
+            </tr>
+            <tr>
+                <td colspan="5" class="text-end"><strong>GRAND TOTAL</strong></td>
+                <td><strong>{{ grand_total | usd }}</strong></td> {# 使用我们新计算的grand_total #}
+            </tr>
+        </tfoot>
+    </table>
+{% endblock %}
