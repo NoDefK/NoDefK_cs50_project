@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Transaction History
+{% endblock %}
+
+{% block main %}
+    <div class="container py-5">
+        <h2 class="mb-4">Transaction History</h2>
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Symbol</th>
+                    <th>Transaction Type</th>
+                    <th>Shares</th>
+                    <th>Price per Share</th>
+                    <th>Total Value</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trade in my_history %}
+                    <tr>
+                        <td><strong>{{ trade.symbol }}</strong></td>
+                        
+                        {% if trade.shares > 0 %}
+                            <td class="text-success">BUY</td>
+                        {% else %}
+                            <td class="text-danger">SELL</td>
+                        {% endif %}
+
+                        <td>{{ trade.shares | abs }}</td>
+                        
+                        <td>{{ trade.price_per_share | usd }}</td>
+                        
+                        <td>{{ (trade.shares * trade.price_per_share) | abs | usd }}</td>
+                        
+                        <td>{{ trade.created_at }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
