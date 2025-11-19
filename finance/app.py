@@ -52,7 +52,7 @@ def index():
         grand_total += stock["total_shares"] * quote["price"]
 
     # 注意：现在传递 grand_total 而不是旧的 total
-    return render_template("portfolio.html", quotes=quotes, stocks=stocks, grand_total=grand_total, cash_remaining=cash_remaining)
+    return render_template("portfolio.html", quotes=quotes, stocks=stocks, grand_total=grand_total, cash_remaining=cash_remaining)#后端传前端
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -212,4 +212,41 @@ def register():
 @login_required
 def sell():
     """Sell shares of stock"""
-    return apology("TODO")
+    if  request.method=="POST":
+        symbol=request.form.get("symbol")
+        if not symbol:
+            return apology("must provide symbol",400)
+        quote=lookup(symbol)
+        if quote==None:
+            return apology("invalid symbol",400)
+        try:
+            shares=int(request.form.get("shares"))
+        except:
+            return apology("shares must be normal",400)
+        if shares<=0:
+            return apology("shares should be a positive number",400)
+        # 用户持有的每一种股票和总数量
+        stocks = db.execute( "SELECT symbol, SUM(shares) as total_shares FROM transactions WHERE user_id = :user_id GROUP BY symbol HAVING total_shares > 0", user_id=session["user_id"])
+        #  确认用户是否拥有该股票，以及数量是否足够
+        owned_shares = 0
+        find=False
+        for stock in stocks:
+            if stock["symbol"] == symbol:
+                owned_shares = stock["total_shares"]
+                find=True
+                break
+        if not find or owned_shares<=0:
+             return apology("you do not own this stock",400)
+        if shares > owned_shares:
+              return apology("not enough shares to sell",400)
+        per_share_price=quote["price"]
+        total=per_share_price*shares
+        # 增加用户现金
+        db.execute("UPDATE users SET cash = cash + :price WHERE id = :user_id", price=total, user_id=session["user_id"])
+        # 记录交易历史，卖出为负数
+        db.execute("INSERT INTO transactions (user_id, symbol, shares, price) VALUES(:user_id, :symbol, :shares, :price)", user_id=session["user_id"], symbol=symbol, shares=-shares, price=per_share_price)
+        flash("宝宝恭喜你卖出成功！钱钱到手啦！")
+        return redirect("/")
+    else:
+        stocks=db.execute("SELECT symbol FROM transactions WHERE user_id=:user_id GROUP BY symbol HAVING SUM(shares)>0", user_id=session["user_id"])
+        return render_template ("sell.html",symbols=stocks)
