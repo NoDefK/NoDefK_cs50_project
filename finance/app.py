@@ -47,6 +47,9 @@ def index():
 
     for stock in stocks: # 遍历
         quote = lookup(stock["symbol"])
+        if quote==None:
+            quotes[stock["symbol"]]={"price":0,"symbol":stock["symbol"]}
+            continue
         quotes[stock["symbol"]] = quote
         # 累加每支股票的总价值到 grand_total 中
         grand_total += stock["total_shares"] * quote["price"]
@@ -105,9 +108,18 @@ def buy():
 def history():
     """Show history of transactions"""
 
-    a_list_of_my_trades = db.execute("SELECT symbol, shares, per_share_price, total,created_at FROM transactions WHERE user_id = :user_id ORDER BY created_at ASC", user_id=session["user_id"])
+    a_list_of_my_trades = db.execute("""
+        SELECT
+            symbol,
+            shares,
+            price AS price_per_share,
+            (shares * price) AS total,
+            timestamp AS created_at
+        FROM transactions
+        WHERE user_id = :user_id
+        ORDER BY timestamp ASC
+    """, user_id=session["user_id"])
     return render_template("history.html", my_history=a_list_of_my_trades)
-
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -140,7 +152,7 @@ def login():
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
 
-        flash(f"欢迎回来宝宝，{rows[0]["username"]}!")
+        flash(f'欢迎回来宝宝，{rows[0]["username"]}!')
 
         # Redirect user to home page
         return redirect("/")
@@ -198,7 +210,7 @@ def register():
             return apology("不好意思宝宝，这个用户名已经被其他宝宝抢先一步了，请再想一个哦",400)
         #获取hash密码
         hash_password=generate_password_hash(request.form.get("password"))
-        new_user_id=db.execute("INSERT INTO users (username,hash) VALUES(?,?)",request.form.get("username"),hash_password)
+        new_user_id=db.execute("INSERT INTO users (username,hash) VALUES(:username,:hash)",request.form.get("username"),hash_password)
         #注册成功后，自动为用户登录
         session["user_id"]=new_user_id
         flash("注册成功啦！欢迎你新来的宝宝，宝宝真棒！")
@@ -226,17 +238,11 @@ def sell():
         if shares<=0:
             return apology("shares should be a positive number",400)
         # 用户持有的每一种股票和总数量
-        stocks = db.execute( "SELECT symbol, SUM(shares) as total_shares FROM transactions WHERE user_id = :user_id GROUP BY symbol HAVING total_shares > 0", user_id=session["user_id"])
         #  确认用户是否拥有该股票，以及数量是否足够
-        owned_shares = 0
-        find=False
-        for stock in stocks:
-            if stock["symbol"] == symbol:
-                owned_shares = stock["total_shares"]
-                find=True
-                break
-        if not find or owned_shares<=0:
-             return apology("you do not own this stock",400)
+        rows=db.execute("SELECT SUM(shares) total_sharesfrom transactions WHERE user_id= :user_id AND symbol =:symbol GROUP BY symbol ",user_id=session["user_id"],symbol=symbol)
+        if len(rows)!=1 or rows[0]["total_shares"]<=0:
+            return apology ("you do not own this stock",400)
+        owned_shares=rows[0]["share_shares"]
         if shares > owned_shares:
               return apology("not enough shares to sell",400)
         per_share_price=quote["price"]
